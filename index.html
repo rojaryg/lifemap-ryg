@@ -1,0 +1,1617 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>lifemap✦ryg</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        /* ── VARIABLES ── */
+        :root {
+          --bg: #0a0a0a;
+          --surface: #111111;
+          --card: #1c1c1c;
+          --border: #272727;
+          --border-light: #333333;
+          --text: #efefef;
+          --text-muted: #555555;
+          --text-mid: #999999;
+          --accent: #efefef;
+          --flow: #ffffff;
+          --flow-dim: rgba(255,255,255,0.07);
+          --danger: #e05252;
+          --radius: 14px;
+          --radius-sm: 9px;
+        }
+        body[data-theme="light"] {
+          --bg: #e2e0dc;
+          --surface: #eceae6;
+          --card: #ffffff;
+          --border: #d0ceca;
+          --border-light: #c0beba;
+          --text: #141414;
+          --text-muted: #9a9892;
+          --text-mid: #4a4845;
+          --accent: #141414;
+          --flow: #141414;
+          --flow-dim: rgba(0,0,0,0.07);
+          --danger: #c94040;
+        }
+        body[data-theme="miku"] {
+          --bg: #FFF0F7;
+          --surface: #f2fcfb;
+          --card: #ffffff;
+          --border: #99D5D0;
+          --border-light: #BCE8E4;
+          --text: #1A2B2A;
+          --text-muted: #007871;
+          --text-mid: #005D57;
+          --accent: #E3007F;
+          --flow: #00C4B6;
+          --flow-dim: rgba(0,196,182,0.15);
+          --danger: #d04b4b;
+        }
+
+        /* ── GLOBAL LAYOUT ── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg); color: var(--text);
+            display: flex; flex-direction: column; height: 100vh;
+            overflow: hidden; transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* ── TOOLBAR (bottom bar) ── */
+        .toolbar {
+            padding: 14px 24px; background-color: var(--surface);
+            border-top: 1px solid var(--border); display: flex;
+            align-items: center; justify-content: center; gap: 16px;
+            z-index: 10; position: relative;
+            transition: background-color 0.3s, border-color 0.3s, opacity 0.3s, transform 0.35s cubic-bezier(0.4,0,0.2,1);
+        }
+        body.focus-mode .toolbar { opacity: 0; transform: translateY(110%); pointer-events: none; }
+        body.focus-mode .canvas-wrapper { overflow: hidden; }
+        body.focus-mode .canvas-wrapper.needs-scroll { overflow: auto; }
+
+        /* ── PAGE TITLE (In Toolbar) ── */
+        .page-title {
+            font-family: 'Space Grotesk', sans-serif; font-size: 1.25rem; font-weight: 700; color: var(--text); 
+            outline: none; border: 1px solid transparent; border-radius: 6px; letter-spacing: -0.03em;
+            padding: 3px 10px; min-width: 80px; max-width: 400px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .page-title:focus { background: var(--flow-dim); border-color: var(--border-light); }
+        .page-title:empty:before { content: "Untitled"; color: var(--text-muted); font-weight: 400; }
+
+        /* ── TOOLBAR SEPARATOR ── */
+        .toolbar-sep {
+            width: 1px; height: 22px; background: var(--border-light); flex-shrink: 0;
+        }
+
+        /* ── HISTORY (UNDO/REDO) BUTTONS & FLOATING ── */
+        .history-btns { display: flex; gap: 6px; align-items: center; }
+        .hist-btn {
+            width: 32px; height: 32px; border-radius: 50%; display: flex; justify-content: center; align-items: center;
+            background: var(--card); border: 1px solid var(--border-light); color: var(--text-mid);
+            cursor: pointer; transition: all 0.15s;
+        }
+        .hist-btn:hover:not(:disabled) { border-color: var(--text-muted); color: var(--text); background: var(--surface); }
+        .hist-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        .btn-float-add {
+            display: flex; align-items: center; gap: 7px; padding: 8px 14px;
+            background: var(--card); color: var(--text-mid); border: 1px solid var(--border-light);
+            border-radius: var(--radius-sm); font-family: 'Inter', sans-serif; font-size: 0.8rem;
+            cursor: pointer; transition: all 0.15s; user-select: none;
+        }
+        .btn-float-add:hover { border-color: var(--text-muted); color: var(--text); background: var(--surface); }
+
+        /* ── FOCUS EXIT BUTTON ── */
+        .focus-exit {
+            position: fixed; top: 16px; right: 16px; width: 36px; height: 36px; border-radius: 50%;
+            background: var(--card); border: 1px solid var(--border); color: var(--text-muted); font-size: 1rem;
+            display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 300;
+            opacity: 0; pointer-events: none; transform: scale(0.75);
+            transition: opacity 0.25s, transform 0.25s, background 0.15s, color 0.15s; box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+        }
+        body.focus-mode .focus-exit { pointer-events: all; }
+        body.focus-mode .focus-exit.peek { opacity: 1; transform: scale(1); }
+        .focus-exit:hover { background: var(--surface); color: var(--text); }
+        .focus-exit-zone { position: fixed; top: 0; right: 0; width: 80px; height: 80px; z-index: 299; pointer-events: none; }
+        body.focus-mode .focus-exit-zone { pointer-events: all; }
+
+        /* ── DROPDOWN MENU ── */
+        .menu-wrapper { position: relative; }
+        .menu-trigger {
+            display: flex; align-items: center; gap: 7px; padding: 8px 14px;
+            background: var(--card); color: var(--text-mid); border: 1px solid var(--border-light);
+            border-radius: var(--radius-sm); font-family: 'Inter', sans-serif; font-size: 0.8rem;
+            cursor: pointer; transition: all 0.15s; user-select: none;
+        }
+        .menu-trigger:hover { border-color: var(--text-muted); color: var(--text); }
+        .menu-trigger.open { border-color: var(--flow); color: var(--flow); background: var(--flow-dim); }
+        .menu-trigger svg { transition: transform 0.2s; }
+        .menu-trigger.open svg { transform: rotate(180deg); }
+
+        .dropdown {
+            position: absolute; bottom: calc(100% + 8px); right: 0;
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius); min-width: 220px;
+            box-shadow: 0 -8px 40px rgba(0,0,0,0.25); z-index: 100; overflow: hidden;
+            opacity: 0; transform: translateY(6px) scale(0.98); pointer-events: none;
+            transition: opacity 0.15s, transform 0.15s;
+        }
+        .dropdown.open { opacity: 1; transform: translateY(0) scale(1); pointer-events: all; }
+        .drop-section { padding: 6px; border-bottom: 1px solid var(--border); }
+        .drop-section:last-child { border-bottom: none; }
+        .drop-label { font-size: 0.65rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); padding: 6px 8px 4px; font-weight: 500; }
+        .drop-btn {
+            display: flex; align-items: center; gap: 9px; width: 100%; padding: 9px 10px;
+            background: none; border: none; border-radius: var(--radius-sm);
+            color: var(--text-mid); font-family: 'Inter', sans-serif; font-size: 0.82rem; cursor: pointer; transition: all 0.12s; text-align: left;
+        }
+        .drop-btn:hover { background: var(--card); color: var(--text); }
+        .drop-btn.danger { color: var(--danger); }
+        .drop-btn.danger:hover { background: rgba(224,82,82,0.1); }
+        .drop-btn.export { color: var(--flow); }
+        .drop-btn.export:hover { background: var(--flow-dim); }
+
+        .drop-theme { display: flex; gap: 4px; padding: 4px 2px; }
+        .tpick {
+            flex: 1; padding: 7px 6px; border: 1px solid var(--border); background: var(--card);
+            border-radius: var(--radius-sm); font-family: 'Inter', sans-serif; font-size: 0.70rem;
+            color: var(--text-muted); cursor: pointer; transition: all 0.2s; text-align: center;
+        }
+        .tpick:hover { color: var(--text); border-color: var(--text-muted); }
+        .tpick.active { background: var(--flow-dim); border-color: var(--flow); color: var(--text); font-weight: 600; }
+        .tpick[data-theme="miku"].active { color: #E3007F; border-color: #E3007F; background: rgba(227,0,127,0.1); }
+
+        /* ── SYNC PANEL ── */
+        .sync-panel {
+            position: fixed; bottom: 70px; left: 50%; transform: translateX(-50%) translateY(12px);
+            background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); width: 360px; max-width: calc(100vw - 32px);
+            box-shadow: 0 -8px 40px rgba(0,0,0,0.3); z-index: 200; padding: 20px; opacity: 0; pointer-events: none; transition: opacity 0.18s, transform 0.18s;
+        }
+        .sync-panel.open { opacity: 1; pointer-events: all; transform: translateX(-50%) translateY(0); }
+        .sync-panel-title { font-family: 'Space Grotesk', sans-serif; font-size: 0.95rem; font-weight: 700; color: var(--text); margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+        .sync-close { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.1rem; }
+        .sync-close:hover { color: var(--text); }
+        .sync-field { margin-bottom: 12px; }
+        .sync-label { display: block; font-size: 0.68rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 5px; letter-spacing: 0.06em; }
+        .sync-input-wrap { position: relative; display: flex; align-items: center; }
+        .sync-input { width: 100%; padding: 9px 11px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 0.82rem; outline: none; font-family: 'Inter', sans-serif; }
+        .sync-input:focus { border-color: var(--flow); }
+        .sync-eye { position: absolute; right: 9px; background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 14px; padding: 0; line-height: 1; }
+        .sync-eye:hover { color: var(--text); }
+        .sync-row { display: flex; gap: 8px; margin-top: 16px; }
+        .sync-btn { flex: 1; padding: 9px 12px; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; transition: all 0.15s; border: 1px solid var(--border); font-family: 'Inter', sans-serif; font-size: 0.82rem; }
+        .sync-btn-save { background: var(--flow); color: var(--bg); border-color: var(--flow); }
+        .sync-btn-save:hover { opacity: 0.85; }
+        .sync-btn-load { background: var(--card); color: var(--text-mid); }
+        .sync-btn-load:hover { color: var(--text); border-color: var(--text-muted); }
+        .sync-status { margin-top: 12px; font-size: 0.75rem; color: var(--text-muted); text-align: center; min-height: 18px; }
+        .sync-status.ok { color: #4caf7d; }
+        .sync-status.err { color: var(--danger); }
+        .sync-status.loading { color: var(--text-mid); }
+
+        /* Gist info card */
+        .sync-gist-card {
+            margin-top: 12px; padding: 10px 12px; background: var(--card); border: 1px solid var(--border);
+            border-radius: var(--radius-sm); display: none; gap: 8px; align-items: center;
+        }
+        .sync-gist-card.visible { display: flex; }
+        .sync-gist-dot { width: 8px; height: 8px; border-radius: 50%; background: #4caf7d; flex-shrink: 0; }
+        .sync-gist-info { flex: 1; min-width: 0; }
+        .sync-gist-label { font-size: 0.65rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600; letter-spacing: 0.06em; }
+        .sync-gist-id-text { font-size: 0.75rem; color: var(--text-mid); font-family: monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .sync-gist-link { font-size: 0.72rem; color: var(--flow); text-decoration: none; flex-shrink: 0; }
+        .sync-gist-link:hover { text-decoration: underline; }
+
+        /* Load from ID section */
+        .sync-divider { border: none; border-top: 1px solid var(--border); margin: 14px 0 12px; }
+        .sync-alt-label { font-size: 0.70rem; color: var(--text-muted); margin-bottom: 8px; display: block; }
+        .sync-alt-row { display: flex; gap: 6px; }
+        .sync-alt-input { flex: 1; padding: 8px 10px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 0.78rem; outline: none; font-family: monospace; }
+        .sync-alt-input:focus { border-color: var(--flow); }
+        .sync-alt-btn { padding: 8px 12px; border-radius: var(--radius-sm); background: var(--card); border: 1px solid var(--border-light); color: var(--text-mid); font-size: 0.78rem; cursor: pointer; white-space: nowrap; }
+        .sync-alt-btn:hover { color: var(--text); border-color: var(--flow); background: var(--flow-dim); }
+
+        /* ── WORKSPACE & CANVAS ── */
+        .workspace { flex-grow: 1; display: flex; justify-content: center; align-items: center; overflow: hidden; transition: background-color 0.4s; min-height: 0; position: relative; }
+        .workspace.mobile-active { background-color: rgba(0,0,0,0.2); padding: 20px; }
+        .canvas-wrapper { width: 100%; height: 100%; overflow: auto; position: relative; padding: 40px; background-color: var(--bg); transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); scrollbar-width: none; }
+        .canvas-wrapper::-webkit-scrollbar { display: none; }
+        .canvas-wrapper.mobile-device { width: 390px; height: 800px; max-height: 100%; border-radius: 36px; border: 12px solid var(--border-light); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); flex-shrink: 0; padding: 20px; }
+        #lines-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+        #tree-container { position: relative; z-index: 2; display: grid; place-items: center; min-width: 100%; min-height: 100%; padding: 120px; }
+        #floating-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; }
+
+        /* ── NODES & MULTI-DIRECTIONAL LAYOUT (CSS GRID) ── */
+        .node-group {
+            display: grid;
+            grid-template-columns: auto auto auto;
+            grid-template-rows: auto auto auto;
+            align-items: center;
+            justify-items: center;
+        }
+        
+        .children.up { grid-column: 2; grid-row: 1; display: flex; flex-direction: row; align-items: flex-end; padding-bottom: 40px; gap: 16px; justify-content: center;}
+        .children.left { grid-column: 1; grid-row: 2; display: flex; flex-direction: column; align-items: flex-end; padding-right: 40px; gap: 16px; justify-content: center;}
+        .children.right { grid-column: 3; grid-row: 2; display: flex; flex-direction: column; align-items: flex-start; padding-left: 40px; gap: 16px; justify-content: center;}
+        .children.down { grid-column: 2; grid-row: 3; display: flex; flex-direction: row; align-items: flex-start; padding-top: 40px; gap: 16px; justify-content: center;}
+        .children:empty { padding: 0 !important; gap: 0 !important; }
+
+        .node, .floating-node {
+            background-color: var(--card); padding: 8px 12px; border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            display: flex; align-items: center; gap: 6px; transition: all 0.2s;
+            position: relative; box-shadow: 0 2px 8px rgba(0,0,0,0.08); z-index: 2;
+        }
+
+        /* Node harus duduk di kolom & baris tengah grid 3×3 */
+        .node { grid-column: 2; grid-row: 2; }
+
+        /* FLOATING NODE SPECIFICS */
+        .floating-node {
+            position: absolute; pointer-events: auto;
+            border: 1px dashed var(--border-light);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.2); transition: none;
+        }
+        .floating-node:hover { border-color: var(--text-muted); }
+        .floating-node.dragging { cursor: grabbing !important; opacity: 0.9; box-shadow: 0 12px 24px rgba(0,0,0,0.4); z-index: 99; }
+        
+        .drag-handle {
+            color: var(--text-muted); cursor: grab; padding: 4px; margin-left: -4px;
+            font-size: 14px; line-height: 1; display: flex; align-items: center; user-select: none;
+        }
+        .drag-handle:hover { color: var(--text); }
+
+        .node:hover { background-color: var(--surface); border-color: var(--border-light); }
+        .node.root-node { font-weight: 600; }
+        .node.has-note, .floating-node.has-note { border-right: 3px solid var(--flow); }
+
+        .node-text {
+            font-family: 'Space Grotesk', sans-serif; color: var(--text); font-weight: 500; font-size: 0.88rem;
+            min-width: 100px; max-width: 250px; outline: none; word-wrap: break-word;
+            padding: 4px 6px; border-radius: 4px; border: 1px solid transparent; text-align: center;
+        }
+        .node-text:focus { background-color: var(--flow-dim); border-color: var(--border-light); }
+        .node-text:empty:before { content: "Ketik di sini..."; color: var(--text-muted); font-style: italic; }
+
+        /* BUTTONS (UP, DOWN, LEFT, RIGHT) */
+        .add-dir-btn {
+            position: absolute; width: 20px; height: 20px; border-radius: 50%;
+            background: var(--surface); border: 1px solid var(--border-light); color: var(--text-muted);
+            display: flex; justify-content: center; align-items: center; font-size: 14px; font-weight: bold; cursor: pointer;
+            opacity: 0; transition: all 0.2s; z-index: 10;
+        }
+        .node:hover .add-dir-btn { opacity: 0.4; } 
+        .add-dir-btn:hover { opacity: 1 !important; border-color: var(--flow); color: var(--flow); background: var(--flow-dim); }
+
+        .add-dir-btn.up { top: -12px; left: 50%; transform: translateX(-50%); }
+        .add-dir-btn.down { bottom: -12px; left: 50%; transform: translateX(-50%); }
+        .add-dir-btn.left { left: -12px; top: 50%; transform: translateY(-50%); }
+        .add-dir-btn.right { right: -12px; top: 50%; transform: translateY(-50%); }
+
+        .add-dir-btn.up:hover, .add-dir-btn.down:hover { transform: translateX(-50%) scale(1.15) !important; }
+        .add-dir-btn.left:hover, .add-dir-btn.right:hover { transform: translateY(-50%) scale(1.15) !important; }
+
+        .toggle-btn {
+            position: absolute; width: 16px; height: 16px; border-radius: 50%;
+            background: var(--card); border: 1px solid var(--border); color: var(--text-mid);
+            display: none; justify-content: center; align-items: center; font-size: 8px; cursor: pointer; z-index: 12; transition: all 0.15s;
+        }
+        .toggle-btn:hover { color: var(--text); border-color: var(--flow); background: var(--flow-dim); }
+        
+        .toggle-btn.up { top: -8px; left: 50%; transform: translateX(-50%); margin-left: 20px; }
+        .toggle-btn.down { bottom: -8px; left: 50%; transform: translateX(-50%); margin-left: 20px; }
+        .toggle-btn.left { left: -8px; top: 50%; transform: translateY(-50%); margin-top: -20px; }
+        .toggle-btn.right { right: -8px; top: 50%; transform: translateY(-50%); margin-top: -20px; }
+
+        .toggle-btn.up:hover, .toggle-btn.down:hover { transform: translateX(-50%) scale(1.15); }
+        .toggle-btn.left:hover, .toggle-btn.right:hover { transform: translateY(-50%) scale(1.15); }
+
+        .toggle-btn.collapsed { background: var(--flow); color: var(--bg); border-color: var(--flow); display: flex !important; box-shadow: 0 0 6px var(--flow); }
+        
+        .mobile-device .node .add-dir-btn { opacity: 0.6; }
+
+        .action-btns { display: flex; gap: 4px; opacity: 0; transition: opacity 0.2s; }
+        .node:hover .action-btns, .floating-node:hover .action-btns { opacity: 1; }
+        .mobile-device .action-btns { opacity: 1; }
+
+        .action-btn {
+            background-color: transparent; border-radius: 50%; width: 22px; height: 22px; display: flex; justify-content: center; align-items: center;
+            cursor: pointer; font-weight: bold; font-size: 14px; transition: all 0.18s; border: 1.5px solid transparent;
+        }
+        .note-btn { color: var(--text-muted); font-size: 12px; }
+        .note-btn:hover { border-color: var(--flow); color: var(--flow); background: var(--flow-dim); transform: scale(1.15); }
+        .del-btn { color: var(--danger); }
+        .del-btn:hover { border-color: var(--danger); background: rgba(224,82,82,0.1); transform: scale(1.15); }
+
+        /* ── STICKY NOTE PANEL (PENGGANTI MODAL) ── */
+        .sticky-note-panel {
+            position: fixed; top: 20%; left: 50%; transform: translateX(-50%) scale(0.95);
+            width: 260px; background: var(--surface); border: 1px solid var(--border-light);
+            border-radius: var(--radius); box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            z-index: 1000; display: flex; flex-direction: column;
+            opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s;
+        }
+        .sticky-note-panel.open {
+            opacity: 1; pointer-events: all; transform: translateX(-50%) scale(1);
+        }
+        .sticky-note-panel.dragged {
+            transform: none; transition: none;
+        }
+        .sticky-note-header {
+            padding: 12px 16px; background: var(--card); border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center; cursor: grab;
+            border-top-left-radius: var(--radius); border-top-right-radius: var(--radius);
+        }
+        .sticky-note-header:active { cursor: grabbing; }
+        .sticky-note-title { font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 0.95rem; color: var(--text); pointer-events: none; }
+        
+        .close-btn { background: none; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer; padding: 0 4px; }
+        .close-btn:hover { color: var(--danger); }
+        
+        .sticky-note-body { padding: 0; display: flex; flex-direction: column; flex-grow: 1; }
+        .note-editor {
+            width: 100%; min-height: 110px; max-height: 260px; padding: 12px; overflow-y: auto; outline: none;
+            color: var(--text); font-size: 0.85rem; line-height: 1.5; font-family: 'Inter', sans-serif;
+            resize: none;
+        }
+        .note-editor:empty:before { content: "Tulis catatan tambahan di sini..."; color: var(--text-muted); font-style: italic; }
+
+        /* ── POPOVER HAPUS ── */
+        .delete-popover {
+            position: absolute; background: var(--card); border: 1px solid var(--border-light);
+            border-radius: var(--radius-sm); padding: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            z-index: 400; opacity: 0; pointer-events: none; transform: scale(0.95); transition: all 0.2s; display: flex; flex-direction: column; gap: 10px;
+        }
+        .delete-popover.show { opacity: 1; pointer-events: all; transform: scale(1); }
+        .delete-popover::before {
+            content: ""; position: absolute; top: 12px; left: -6px; width: 10px; height: 10px;
+            background: var(--card); border-left: 1px solid var(--border-light); border-bottom: 1px solid var(--border-light);
+            transform: rotate(45deg); transition: all 0.2s;
+        }
+        .delete-popover.arrow-right::before { left: auto; right: -6px; border-left: none; border-bottom: none; border-right: 1px solid var(--border-light); border-top: 1px solid var(--border-light); }
+        .del-pop-text { font-family: 'Inter', sans-serif; font-size: 0.82rem; font-weight: 500; color: var(--text); white-space: nowrap; }
+        .del-pop-actions { display: flex; gap: 6px; }
+        .btn-cancel-sm, .btn-confirm-sm { flex: 1; padding: 6px 10px; font-size: 0.75rem; border-radius: 6px; cursor: pointer; border: 1px solid; font-weight: 600; }
+        .btn-cancel-sm { background: var(--surface); border-color: var(--border); color: var(--text-mid); }
+        .btn-cancel-sm:hover { color: var(--text); background: var(--border); }
+        .btn-confirm-sm { background: rgba(224,82,82,0.15); border-color: rgba(224,82,82,0.3); color: var(--danger); }
+        .btn-confirm-sm:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+    </style>
+</head>
+<body data-theme="dark">
+    
+    <div class="focus-exit-zone" id="focus-exit-zone"></div>
+    <div class="focus-exit" id="focus-exit-btn" onclick="toggleFullscreen()" title="Keluar dari Focus Mode">✕</div>
+
+    <div class="workspace" id="workspace">
+        <div class="canvas-wrapper" id="canvas-wrapper">
+            <svg id="lines-svg"></svg>
+            <div id="tree-container"></div>
+            <div id="floating-container"></div>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        
+        <div id="doc-title" class="page-title" contenteditable="true" onblur="saveState()">lifemap✦ryg</div>
+
+        <div class="toolbar-sep"></div>
+
+        <button class="btn-float-add" onclick="addFloatingNode()" title="Buat Floating Note">
+            + Floating Notes
+        </button>
+
+        <div class="toolbar-sep"></div>
+
+        <div class="menu-wrapper" id="menu-wrapper">
+            <div class="menu-trigger" id="menu-trigger" onclick="toggleMenu()">
+                Settings
+                <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
+                    <path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            
+            <div class="dropdown" id="main-dropdown">
+                <div class="drop-section">
+                    <div class="drop-label">Tema</div>
+                    <div class="drop-theme">
+                        <div class="tpick active" data-theme="dark" onclick="setTheme('dark')">Dark</div>
+                        <div class="tpick" data-theme="light" onclick="setTheme('light')">Light</div>
+                        <div class="tpick" data-theme="miku" onclick="setTheme('miku')">Miku</div>
+                    </div>
+                </div>
+                <div class="drop-section">
+                    <div class="drop-label">Tampilan</div>
+                    <button class="drop-btn" onclick="toggleMobileView(); closeMenu()" id="btn-mobile">📱 Mode: Desktop</button>
+                    <button class="drop-btn" onclick="toggleFullscreen(); closeMenu()" id="btn-fullscreen"><span id="fs-label">⊡ Focus Mode</span></button>
+                </div>
+                <div class="drop-section">
+                    <div class="drop-label">Ekspor</div>
+                    <button class="drop-btn export" onclick="exportToPNG('landscape'); closeMenu()">📸 Save Landscape</button>
+                    <button class="drop-btn export" onclick="exportToPNG('portrait'); closeMenu()">📸 Save Portrait</button>
+                </div>
+                <div class="drop-section">
+                    <div class="drop-label">Data</div>
+                    <button class="drop-btn" onclick="toggleSyncPanel(); closeMenu()" id="btn-sync">☁ GitHub Sync</button>
+                    <button class="drop-btn danger" onclick="resetTree(); closeMenu()">⚠ Reset Data</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="sync-panel" id="sync-panel">
+        <div class="sync-panel-title">
+            ☁ GitHub Gist Sync
+            <button class="sync-close" onclick="closeSyncPanel()">×</button>
+        </div>
+
+        <div class="sync-field">
+            <label class="sync-label">Username GitHub</label>
+            <div class="sync-input-wrap" style="gap: 6px;">
+                <input type="text" id="sync-username" class="sync-input" placeholder="contoh: ryg-dev" style="flex:1;">
+                <button class="sync-alt-btn" onclick="verifyUsername()" id="btn-verify" style="flex-shrink:0; padding: 0 12px; height: 36px;">Verifikasi</button>
+            </div>
+            <div id="verify-status" style="font-size:0.72rem; margin-top:5px; min-height:16px;"></div>
+        </div>
+
+        <div class="sync-field">
+            <label class="sync-label">Personal Access Token</label>
+            <div class="sync-input-wrap">
+                <input type="password" id="sync-token" class="sync-input" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" style="padding-right: 34px;">
+                <button class="sync-eye" id="sync-eye-btn" onclick="toggleTokenVisibility()" title="Tampilkan/Sembunyikan token">👁</button>
+            </div>
+        </div>
+
+        <div class="sync-row">
+            <button class="sync-btn sync-btn-load" onclick="loadFromGithub()">⬇ Load</button>
+            <button class="sync-btn sync-btn-save" onclick="saveToGithub()">⬆ Save ke Gist</button>
+        </div>
+
+        <div class="sync-status" id="sync-status"></div>
+
+        <!-- Info gist yang tersimpan -->
+        <div class="sync-gist-card" id="sync-gist-card">
+            <div class="sync-gist-dot"></div>
+            <div class="sync-gist-info">
+                <div class="sync-gist-label">Gist Tersambung</div>
+                <div class="sync-gist-id-text" id="sync-gist-id-text">—</div>
+            </div>
+            <a href="#" id="sync-gist-link" target="_blank" class="sync-gist-link">Buka ↗</a>
+        </div>
+
+        <!-- Load dari Gist orang lain -->
+        <hr class="sync-divider">
+        <span class="sync-alt-label">Load dari Gist ID lain (misal: berbagi dengan teman)</span>
+        <div class="sync-alt-row">
+            <input type="text" id="sync-alt-gist-id" class="sync-alt-input" placeholder="Masukkan Gist ID...">
+            <button class="sync-alt-btn" onclick="loadFromAltGist()">Load</button>
+        </div>
+    </div>
+
+    <div id="sticky-note" class="sticky-note-panel">
+        <div class="sticky-note-header" id="sticky-note-header">
+            <div class="sticky-note-title" id="note-modal-title">Catatan</div>
+            <button class="close-btn" onclick="closeNote()" title="Tutup & Simpan">×</button>
+        </div>
+        <div class="sticky-note-body">
+            <div id="note-editor" class="note-editor" contenteditable="true"></div>
+        </div>
+    </div>
+
+    <div id="delete-popover" class="delete-popover">
+        <div class="del-pop-text">Hapus cabang ini?</div>
+        <div class="del-pop-actions">
+            <button class="btn-cancel-sm" onclick="closeDeletePopover()">Batal</button>
+            <button class="btn-confirm-sm" id="btn-confirm-delete">Hapus</button>
+        </div>
+    </div>
+
+    <script>
+        // ── GLOBAL STATE ──
+        let nodeToDelete = null;
+        let isMobileView = false;
+
+        // ── HISTORY STATE MANAGEMENT ──
+        let history = []; let historyIndex = -1; let isRestoring = false;
+        
+        function saveState() {
+            if (isRestoring) return;
+            const allData = serializeAll();
+            const title = document.getElementById('doc-title').innerText;
+            const state = JSON.stringify({ title, all: allData });
+            
+            if (historyIndex >= 0 && history[historyIndex] === state) return;
+            
+            history = history.slice(0, historyIndex + 1);
+            history.push(state);
+            if (history.length > 50) history.shift(); else historyIndex++;
+            updateHistoryButtons();
+            localStorage.setItem('mind_ryg_local', state);
+        }
+
+        function undo() {
+            if (historyIndex > 0) { historyIndex--; restoreState(history[historyIndex]); closeDeletePopover(); }
+        }
+
+        function redo() {
+            if (historyIndex < history.length - 1) { historyIndex++; restoreState(history[historyIndex]); closeDeletePopover(); }
+        }
+
+        function restoreState(stateStr) {
+            if (!stateStr) return;
+            isRestoring = true;
+            try {
+                const state = JSON.parse(stateStr);
+                
+                // ── MIGRASI: ganti title lama "mind✦ryg" ke "lifemap✦ryg"
+                const migrateTitle = (t) => (t === 'mind✦ryg' || t === 'mind-ryg' || !t) ? 'lifemap✦ryg' : t;
+
+                // FALLBACK CERDAS: Membaca segala format JSON lama atau baru
+                if (state.all) {
+                    document.getElementById('doc-title').innerText = migrateTitle(state.title);
+                    renderTree(state.all.tree);
+                    renderFloating(state.all.floatingNodes);
+                } else if (state.tree) {
+                    document.getElementById('doc-title').innerText = migrateTitle(state.title);
+                    renderTree(state.tree);
+                    renderFloating([]);
+                } else if (state.text) {
+                    document.getElementById('doc-title').innerText = 'lifemap✦ryg';
+                    renderTree(state);
+                    renderFloating([]);
+                } else {
+                    renderTree(null); // Force render default
+                }
+            } catch (e) { 
+                console.error("Gagal membaca riwayat penyimpanan: ", e); 
+                renderTree(null); 
+            }
+            updateHistoryButtons();
+            setTimeout(() => { isRestoring = false; drawLines(); }, 50);
+        }
+
+        function updateHistoryButtons() {
+            // Tombol undo/redo dihapus dari UI, tapi fungsi keyboard (Ctrl+Z/Y) tetap aktif.
+            // Tidak ada DOM element yang perlu diupdate.
+        }
+
+        function handleTextBlur() { saveState(); drawLines(); }
+
+        // ── STICKY NOTE DRAG LOGIC ──
+        const stickyNote = document.getElementById('sticky-note');
+        const stickyHeader = document.getElementById('sticky-note-header');
+        let isStickyDragging = false;
+        let stickyOffsetX = 0; let stickyOffsetY = 0;
+
+        stickyHeader.addEventListener('mousedown', (e) => {
+            if(e.target.closest('.close-btn')) return; 
+            isStickyDragging = true;
+            
+            if (!stickyNote.classList.contains('dragged')) {
+                const rect = stickyNote.getBoundingClientRect();
+                stickyNote.style.left = rect.left + 'px';
+                stickyNote.style.top = rect.top + 'px';
+                stickyNote.classList.add('dragged');
+            }
+            
+            const currentRect = stickyNote.getBoundingClientRect();
+            stickyOffsetX = e.clientX - currentRect.left;
+            stickyOffsetY = e.clientY - currentRect.top;
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isStickyDragging) {
+                let newX = e.clientX - stickyOffsetX;
+                let newY = e.clientY - stickyOffsetY;
+                stickyNote.style.left = newX + 'px';
+                stickyNote.style.top = newY + 'px';
+            }
+        });
+
+        document.addEventListener('mouseup', () => { isStickyDragging = false; });
+
+        // ── DOUBLE CLICK TO ADD FLOATING NODE ──
+        document.getElementById('canvas-wrapper').addEventListener('dblclick', function(e) {
+            if (e.target.id === 'canvas-wrapper' || e.target.id === 'floating-container' || e.target.id === 'tree-container' || e.target.tagName === 'svg') {
+                const wrapperRect = this.getBoundingClientRect();
+                const x = e.clientX - wrapperRect.left + this.scrollLeft - 60;
+                const y = e.clientY - wrapperRect.top + this.scrollTop - 20;
+                addFloatingNode(x, y);
+            }
+        });
+
+        // ── FLOATING NODE DRAG & DROP LOGIC ──
+        let isDragging = false;
+        let dragTarget = null;
+        let dragOffsetX = 0;
+        let dragOffsetY = 0;
+
+        function addFloatingNode(x, y, text = '', note = '', performSave = true) {
+            closeDeletePopover();
+            const container = document.getElementById('floating-container');
+            const wrapper = document.getElementById('canvas-wrapper');
+            
+            if (x === undefined || y === undefined || isNaN(x) || isNaN(y)) {
+                x = wrapper.scrollLeft + wrapper.clientWidth / 2 - 60;
+                y = wrapper.scrollTop + wrapper.clientHeight / 2 - 20;
+            }
+
+            const node = document.createElement('div');
+            node.className = 'floating-node';
+            if (note && note.trim() !== '' && note !== '<br>') node.classList.add('has-note');
+            
+            node.style.left = x + 'px';
+            node.style.top = y + 'px';
+            
+            node.innerHTML = `
+                <div class="drag-handle" title="Tarik untuk memindahkan">⠿</div>
+                <div class="node-text" contenteditable="true" oninput="drawLines()" onblur="handleTextBlur()">${text}</div>
+                <div class="node-note-data" style="display:none;">${note}</div>
+                <div class="action-btns">
+                    <button class="action-btn note-btn" onclick="openNote(this)" title="Catatan">✎</button>
+                    <button class="action-btn del-btn" onclick="confirmDelete(this, event)" title="Hapus">×</button>
+                </div>
+            `;
+            
+            const handle = node.querySelector('.drag-handle');
+            handle.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                dragTarget = node;
+                node.classList.add('dragging');
+                const rect = node.getBoundingClientRect();
+                dragOffsetX = e.clientX - rect.left;
+                dragOffsetY = e.clientY - rect.top;
+                e.preventDefault();
+            });
+            
+            container.appendChild(node);
+            
+            if (performSave) {
+                saveState();
+                node.querySelector('.node-text').focus();
+            }
+        }
+
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging && dragTarget) {
+                const wrapper = document.getElementById('canvas-wrapper');
+                const wrapperRect = wrapper.getBoundingClientRect();
+                let newLeft = e.clientX - wrapperRect.left + wrapper.scrollLeft - dragOffsetX;
+                let newTop = e.clientY - wrapperRect.top + wrapper.scrollTop - dragOffsetY;
+                dragTarget.style.left = newLeft + 'px';
+                dragTarget.style.top = newTop + 'px';
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                if (dragTarget) {
+                    dragTarget.classList.remove('dragging');
+                    saveState(); 
+                }
+                dragTarget = null;
+            }
+        });
+
+        // ── KEYBOARD SHORTCUTS ──
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                if (document.getElementById('delete-popover').classList.contains('show')) closeDeletePopover();
+                else if (document.getElementById('sticky-note').classList.contains('open')) closeNote();
+                else if (document.body.classList.contains('focus-mode')) toggleFullscreen();
+            }
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+                e.preventDefault();
+                if (e.shiftKey) redo(); else undo();
+            }
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+                e.preventDefault(); redo();
+            }
+        });
+
+        // ── UTILITIES ──
+        function toggleFullscreen() {
+            const isFocus = document.body.classList.toggle('focus-mode');
+            const label = document.getElementById('fs-label');
+            if (label) label.textContent = isFocus ? '⊠ Keluar Focus' : '⊡ Focus Mode';
+            closeSyncPanel(); closeMenu(); checkScrollNeeded(); setTimeout(drawLines, 50);
+        }
+
+        function checkScrollNeeded() {
+            const wrapper = document.getElementById('canvas-wrapper');
+            const fits = wrapper.scrollWidth <= wrapper.clientWidth && wrapper.scrollHeight <= wrapper.clientHeight;
+            wrapper.classList.toggle('needs-scroll', !fits);
+        }
+
+        function toggleMenu() {
+            document.getElementById('menu-trigger').classList.toggle('open');
+            document.getElementById('main-dropdown').classList.toggle('open');
+        }
+
+        function closeMenu() {
+            document.getElementById('menu-trigger').classList.remove('open');
+            document.getElementById('main-dropdown').classList.remove('open');
+        }
+
+        document.addEventListener('click', function(e) {
+            const wrapper = document.getElementById('menu-wrapper');
+            const syncPanel = document.getElementById('sync-panel');
+            const syncBtn = document.getElementById('btn-sync');
+            const delPopover = document.getElementById('delete-popover');
+            
+            if (!wrapper.contains(e.target)) closeMenu();
+            if (!syncPanel.contains(e.target) && !syncBtn.contains(e.target)) closeSyncPanel();
+            
+            if (delPopover.classList.contains('show') && !delPopover.contains(e.target) && !e.target.closest('.del-btn')) {
+                closeDeletePopover();
+            }
+        });
+
+        document.getElementById('canvas-wrapper').addEventListener('scroll', function() {
+            drawLines();
+            closeDeletePopover(); 
+        });
+
+        // ── STICKY NOTES INTERFACE ──
+        let currentNoteNode = null;
+
+        function saveCurrentNote() {
+            if (currentNoteNode) {
+                const noteData = document.getElementById('note-editor').innerHTML;
+                let noteDiv = currentNoteNode.querySelector('.node-note-data');
+                if (!noteDiv) {
+                    noteDiv = document.createElement('div');
+                    noteDiv.className = 'node-note-data';
+                    noteDiv.style.display = 'none';
+                    currentNoteNode.appendChild(noteDiv);
+                }
+                noteDiv.innerHTML = noteData;
+                
+                if (noteData.trim() && noteData !== '<br>') {
+                    currentNoteNode.classList.add('has-note');
+                } else {
+                    currentNoteNode.classList.remove('has-note');
+                }
+            }
+        }
+
+        function openNote(btnElement) {
+            closeDeletePopover(); 
+            const node = btnElement.closest('.node') || btnElement.closest('.floating-node');
+            
+            if (currentNoteNode && currentNoteNode !== node) {
+                saveCurrentNote();
+            }
+
+            currentNoteNode = node;
+            
+            const nodeText = node.querySelector('.node-text').innerText || "Node Tanpa Nama";
+            const noteDataEl = node.querySelector('.node-note-data');
+            
+            document.getElementById('note-modal-title').innerText = nodeText;
+            document.getElementById('note-editor').innerHTML = noteDataEl ? noteDataEl.innerHTML : '';
+            
+            const sticky = document.getElementById('sticky-note');
+            if (!sticky.classList.contains('open')) {
+                if (!sticky.classList.contains('dragged')) {
+                    sticky.style.left = '50%';
+                    sticky.style.top = '20%';
+                }
+                sticky.classList.add('open');
+            }
+            
+            setTimeout(() => document.getElementById('note-editor').focus(), 50);
+        }
+
+        function closeNote() {
+            saveCurrentNote();
+            currentNoteNode = null;
+            saveState(); 
+            document.getElementById('sticky-note').classList.remove('open');
+        }
+
+        document.getElementById('note-editor').addEventListener('input', () => { saveCurrentNote(); });
+        document.getElementById('note-editor').addEventListener('blur', () => { saveCurrentNote(); saveState(); });
+
+        // ── DELETE POPOVER ──
+        function confirmDelete(btn, event) {
+            event.stopPropagation();
+            
+            const floatingNode = btn.closest('.floating-node');
+            if (floatingNode) {
+                nodeToDelete = floatingNode;
+            } else {
+                const group = btn.closest('.node-group');
+                if (group.querySelector(':scope > .node').classList.contains('root-node')) return;
+                nodeToDelete = group;
+            }
+
+            const popover = document.getElementById('delete-popover');
+            const rect = btn.getBoundingClientRect();
+            
+            popover.classList.remove('arrow-right');
+            let topPos = rect.top + window.scrollY - 10;
+            let leftPos = rect.left + window.scrollX - 160;
+
+            if (leftPos < 10) {
+                leftPos = rect.right + window.scrollX + 10;
+                popover.classList.add('arrow-right');
+            }
+
+            popover.style.top = `${topPos}px`;
+            popover.style.left = `${leftPos}px`;
+            popover.classList.add('show');
+        }
+
+        function closeDeletePopover() {
+            document.getElementById('delete-popover').classList.remove('show');
+            nodeToDelete = null;
+        }
+
+        document.getElementById('btn-confirm-delete').addEventListener('click', function() {
+            if (nodeToDelete) {
+                if (nodeToDelete.classList.contains('floating-node')) {
+                    nodeToDelete.remove();
+                } else {
+                    const parentContainer = nodeToDelete.parentElement;
+                    const dir = parentContainer.classList.contains('up') ? 'up' :
+                                parentContainer.classList.contains('down') ? 'down' :
+                                parentContainer.classList.contains('left') ? 'left' : 'right';
+                    const parentGroup = parentContainer.parentElement;
+
+                    nodeToDelete.remove();
+                    
+                    // ── BERSIHKAN NODE DUPLIKAT: setelah hapus, cek apakah
+                    // masih ada node-group saudara yang posisinya sama persis.
+                    // Kalau ada, hapus yang belakangan (keep yang duluan = index lebih kecil).
+                    if (parentContainer) {
+                        const siblings = Array.from(parentContainer.children);
+                        const seenPositions = new Set();
+                        siblings.forEach(sibling => {
+                            const sNode = sibling.querySelector(':scope > .node');
+                            if (!sNode) return;
+                            const r = sNode.getBoundingClientRect();
+                            const posKey = `${Math.round(r.left)},${Math.round(r.top)}`;
+                            if (seenPositions.has(posKey)) {
+                                sibling.remove(); // hapus duplikat (yang belakangan)
+                            } else {
+                                seenPositions.add(posKey);
+                            }
+                        });
+                    }
+
+                    if (parentContainer.children.length === 0 && parentGroup) {
+                        const toggleBtn = parentGroup.querySelector(`:scope > .node > .toggle-btn.${dir}`);
+                        if (toggleBtn) toggleBtn.style.display = 'none';
+                    }
+                }
+                
+                if(currentNoteNode === nodeToDelete || currentNoteNode === nodeToDelete.querySelector('.node')) {
+                    closeNote();
+                }
+
+                closeDeletePopover();
+                drawLines();
+                saveState();
+            }
+        });
+
+        // ── THEME ──
+        function setTheme(themeName) {
+            document.body.setAttribute('data-theme', themeName);
+            document.querySelectorAll('.tpick').forEach(el => el.classList.remove('active'));
+            const activePick = document.querySelector(`.tpick[data-theme="${themeName}"]`);
+            if (activePick) activePick.classList.add('active');
+            localStorage.setItem('mind_ryg_theme', themeName);
+            setTimeout(drawLines, 300);
+        }
+
+        // ── RESET TREE ──
+        function resetTree() {
+            if (confirm("Yakin ingin menghapus seluruh data dan memulai ulang?")) {
+                localStorage.removeItem('mind_ryg_local');
+                document.getElementById('doc-title').innerText = 'lifemap✦ryg';
+                history = []; historyIndex = -1; updateHistoryButtons();
+                document.getElementById('floating-container').innerHTML = '';
+                init();
+            }
+        }
+
+        // ── ADD DIRECTIONAL NODE (RIGID TREE) ──
+        // Cooldown supaya double-click ga bikin dua node duplikat sekaligus
+        let _addNodeCooldown = false;
+        function addNodeDir(btn, dir) {
+            if (_addNodeCooldown) return;
+            _addNodeCooldown = true;
+            setTimeout(() => _addNodeCooldown = false, 350);
+
+            closeDeletePopover();
+            const parentNode = btn.closest('.node');
+            const group = parentNode.parentElement;
+            const container = group.querySelector(`:scope > .children.${dir}`);
+
+            const newGroup = document.createElement('div');
+            newGroup.className = 'node-group';
+            newGroup.innerHTML = `
+                <div class="children up"></div>
+                <div class="children left"></div>
+                <div class="node">
+                    <button class="add-dir-btn up" onclick="addNodeDir(this, 'up')" title="Tambah ke atas">+</button>
+                    <button class="toggle-btn up" onclick="toggleBranch(this, 'up')" title="Buka/Tutup Cabang Atas">▲</button>
+
+                    <button class="add-dir-btn left" onclick="addNodeDir(this, 'left')" title="Tambah ke kiri">+</button>
+                    <button class="toggle-btn left" onclick="toggleBranch(this, 'left')" title="Buka/Tutup Cabang Kiri">◀</button>
+
+                    <div class="node-text" contenteditable="true" oninput="drawLines()" onblur="handleTextBlur()">Baru</div>
+                    <div class="node-note-data" style="display:none;"></div>
+                    <div class="action-btns">
+                        <button class="action-btn note-btn" onclick="openNote(this)" title="Catatan">✎</button>
+                        <button class="action-btn del-btn" onclick="confirmDelete(this, event)" title="Hapus">×</button>
+                    </div>
+
+                    <button class="add-dir-btn right" onclick="addNodeDir(this, 'right')" title="Tambah ke kanan">+</button>
+                    <button class="toggle-btn right" onclick="toggleBranch(this, 'right')" title="Buka/Tutup Cabang Kanan">▶</button>
+
+                    <button class="add-dir-btn down" onclick="addNodeDir(this, 'down')" title="Tambah ke bawah">+</button>
+                    <button class="toggle-btn down" onclick="toggleBranch(this, 'down')" title="Buka/Tutup Cabang Bawah">▼</button>
+                </div>
+                <div class="children right"></div>
+                <div class="children down"></div>
+            `;
+            container.appendChild(newGroup);
+
+            // Tampilkan container jika sebelumnya tersembunyi
+            if (container.style.display === 'none') {
+                container.style.display = 'flex';
+                const toggleBtn = parentNode.querySelector(`.toggle-btn.${dir}`);
+                if (toggleBtn) {
+                    toggleBtn.classList.remove('collapsed');
+                    const icons = { up: '▲', down: '▼', left: '◀', right: '▶' };
+                    toggleBtn.innerText = icons[dir] || '';
+                }
+            }
+
+            // Tampilkan toggle button karena sekarang ada child
+            const toggleBtn = parentNode.querySelector(`.toggle-btn.${dir}`);
+            if (toggleBtn) toggleBtn.style.display = 'flex';
+
+            drawLines();
+            newGroup.querySelector('.node-text').focus();
+            saveState();
+        }
+
+        // ── COLLAPSE / EXPAND ──
+        function toggleBranch(btn, direction) {
+            closeDeletePopover();
+            const group = btn.closest('.node-group');
+            const container = group.querySelector(`:scope > .children.${direction}`);
+            
+            if (container.style.display === 'none') {
+                container.style.display = 'flex';
+                btn.classList.remove('collapsed');
+                if (direction === 'up') btn.innerText = '▲';
+                else if (direction === 'down') btn.innerText = '▼';
+                else if (direction === 'left') btn.innerText = '◀';
+                else if (direction === 'right') btn.innerText = '▶';
+            } else {
+                container.style.display = 'none';
+                btn.classList.add('collapsed');
+                if (direction === 'up') btn.innerText = '▼';
+                else if (direction === 'down') btn.innerText = '▲';
+                else if (direction === 'left') btn.innerText = '▶';
+                else if (direction === 'right') btn.innerText = '◀';
+            }
+            drawLines();
+            saveState(); 
+        }
+
+        // ── SYNC PANEL & GIST LOGIC ──
+        function toggleSyncPanel() {
+            const panel = document.getElementById('sync-panel');
+            if (panel.classList.contains('open')) { closeSyncPanel(); return; }
+
+            // Isi field dari localStorage kalau ada
+            document.getElementById('sync-username').value = localStorage.getItem('gh_username') || '';
+            document.getElementById('sync-token').value = localStorage.getItem('gh_token') || '';
+            document.getElementById('verify-status').textContent = '';
+
+            // Tampilkan gist card kalau ada gist tersimpan
+            updateGistCard();
+
+            panel.classList.add('open');
+            document.getElementById('btn-sync').classList.add('open');
+            setStatus('', '');
+        }
+
+        function closeSyncPanel() {
+            document.getElementById('sync-panel').classList.remove('open');
+            document.getElementById('btn-sync').classList.remove('open');
+        }
+
+        function setStatus(msg, type) {
+            const el = document.getElementById('sync-status');
+            el.innerText = msg;
+            el.className = 'sync-status' + (type ? ' ' + type : '');
+        }
+
+        function toggleTokenVisibility() {
+            const input = document.getElementById('sync-token');
+            const btn = document.getElementById('sync-eye-btn');
+            if (input.type === 'password') {
+                input.type = 'text'; btn.textContent = '🙈';
+            } else {
+                input.type = 'password'; btn.textContent = '👁';
+            }
+        }
+
+        async function verifyUsername() {
+            const username = document.getElementById('sync-username').value.trim();
+            const token    = document.getElementById('sync-token').value.trim();
+            const statusEl = document.getElementById('verify-status');
+            const btn      = document.getElementById('btn-verify');
+
+            if (!username) { statusEl.style.color = 'var(--danger)'; statusEl.textContent = '❌ Username tidak boleh kosong.'; return; }
+
+            btn.textContent = '...'; btn.disabled = true;
+            statusEl.style.color = 'var(--text-muted)'; statusEl.textContent = 'Memeriksa...';
+
+            try {
+                const headers = { 'Accept': 'application/vnd.github.v3+json', ...(token ? { 'Authorization': `token ${token}` } : {}) };
+                const res  = await fetch(`https://api.github.com/users/${encodeURIComponent(username)}`, { headers });
+                const data = await res.json();
+
+                if (res.ok) {
+                    localStorage.setItem('gh_username', username);
+                    if (token) localStorage.setItem('gh_token', token);
+                    statusEl.style.color = '#4caf7d';
+                    statusEl.textContent = `✓ Terverifikasi — ${data.name || username} (@${data.login})`;
+                } else if (res.status === 401) {
+                    statusEl.style.color = 'var(--danger)'; statusEl.textContent = '❌ Token tidak valid atau tidak punya akses.';
+                } else if (res.status === 404) {
+                    statusEl.style.color = 'var(--danger)'; statusEl.textContent = '❌ Username tidak ditemukan di GitHub.';
+                } else {
+                    statusEl.style.color = 'var(--danger)'; statusEl.textContent = '❌ ' + (data.message || 'Gagal verifikasi.');
+                }
+            } catch (err) {
+                statusEl.style.color = 'var(--danger)'; statusEl.textContent = '❌ Error jaringan: ' + err.message;
+            }
+
+            btn.textContent = 'Verifikasi'; btn.disabled = false;
+        }
+
+        function updateGistCard() {
+            const gistId = localStorage.getItem('gh_gist_id');
+            const card = document.getElementById('sync-gist-card');
+            if (gistId) {
+                document.getElementById('sync-gist-id-text').textContent = gistId;
+                document.getElementById('sync-gist-link').href = `https://gist.github.com/${gistId}`;
+                card.classList.add('visible');
+            } else {
+                card.classList.remove('visible');
+            }
+        }
+
+        async function saveToGithub() {
+            const token = document.getElementById('sync-token').value.trim();
+            if (!token) { setStatus('❌ Token tidak boleh kosong.', 'err'); return; }
+
+            localStorage.setItem('gh_token', token);
+            setStatus('Menyimpan...', 'loading');
+
+            const allData  = serializeAll();
+            const title    = document.getElementById('doc-title').innerText;
+            const jsonStr  = JSON.stringify({ title, all: allData, savedAt: new Date().toISOString() }, null, 2);
+
+            const headers = {
+                'Authorization': `token ${token}`,
+                'Accept': 'application/vnd.github.v3+json',
+                'Content-Type': 'application/json'
+            };
+
+            const gistPayload = {
+                description: `lifemap✦ryg — ${title}`,
+                public: false,
+                files: { 'mind_ryg_data.json': { content: jsonStr } }
+            };
+
+            try {
+                const existingGistId = localStorage.getItem('gh_gist_id');
+                let res, data;
+
+                if (existingGistId) {
+                    // Update gist yang sudah ada (PATCH)
+                    res  = await fetch(`https://api.github.com/gists/${existingGistId}`, {
+                        method: 'PATCH', headers, body: JSON.stringify(gistPayload)
+                    });
+                    data = await res.json();
+
+                    if (!res.ok) {
+                        // Kalau gist lama ga ketemu (misal dihapus), buat baru
+                        if (res.status === 404) {
+                            localStorage.removeItem('gh_gist_id');
+                            return saveToGithub(); // rekursi sekali untuk buat baru
+                        }
+                        setStatus('❌ ' + (data.message || 'Gagal update gist'), 'err'); return;
+                    }
+                } else {
+                    // Buat gist baru (POST)
+                    res  = await fetch('https://api.github.com/gists', {
+                        method: 'POST', headers, body: JSON.stringify(gistPayload)
+                    });
+                    data = await res.json();
+
+                    if (!res.ok) {
+                        setStatus('❌ ' + (data.message || 'Gagal membuat gist'), 'err'); return;
+                    }
+                }
+
+                localStorage.setItem('gh_gist_id', data.id);
+                updateGistCard();
+                setStatus('✓ Tersimpan ke Gist!', 'ok');
+
+            } catch (err) {
+                setStatus('❌ Error jaringan: ' + err.message, 'err');
+            }
+        }
+
+        async function loadFromGithub() {
+            const token = document.getElementById('sync-token').value.trim();
+            const gistId = localStorage.getItem('gh_gist_id');
+
+            if (!gistId) {
+                setStatus('❌ Belum ada Gist tersimpan. Save dulu, atau pakai "Load dari Gist ID lain".', 'err'); return;
+            }
+
+            await _doLoadGist(gistId, token);
+        }
+
+        async function loadFromAltGist() {
+            const token = document.getElementById('sync-token').value.trim();
+            const altId = document.getElementById('sync-alt-gist-id').value.trim();
+            if (!altId) { setStatus('❌ Masukkan Gist ID dulu.', 'err'); return; }
+            await _doLoadGist(altId, token);
+        }
+
+        async function _doLoadGist(gistId, token) {
+            setStatus('Memuat data...', 'loading');
+
+            const headers = {
+                'Accept': 'application/vnd.github.v3+json',
+                ...(token ? { 'Authorization': `token ${token}` } : {})
+            };
+
+            try {
+                const res  = await fetch(`https://api.github.com/gists/${gistId}`, { headers });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    setStatus('❌ ' + (data.message || 'Gist tidak ditemukan'), 'err'); return;
+                }
+
+                const fileContent = data.files?.['mind_ryg_data.json']?.content;
+                if (!fileContent) {
+                    setStatus('❌ File mind_ryg_data.json tidak ada di Gist ini.', 'err'); return;
+                }
+
+                const parsed = JSON.parse(fileContent);
+                document.getElementById('doc-title').innerText = parsed.title || 'lifemap✦ryg';
+
+                if (parsed.all) {
+                    renderTree(parsed.all.tree);
+                    renderFloating(parsed.all.floatingNodes);
+                } else if (parsed.tree) {
+                    renderTree(parsed.tree);
+                    renderFloating([]);
+                }
+
+                // Simpan gist ID yang berhasil di-load ke localStorage
+                localStorage.setItem('gh_gist_id', gistId);
+                if (token) localStorage.setItem('gh_token', token);
+                updateGistCard();
+
+                const savedAt = parsed.savedAt ? ` (${new Date(parsed.savedAt).toLocaleString('id-ID')})` : '';
+                setStatus(`✓ Berhasil dimuat!${savedAt}`, 'ok');
+
+                history = []; historyIndex = -1; updateHistoryButtons();
+                setTimeout(saveState, 100);
+
+            } catch (err) {
+                setStatus('❌ ' + err.message, 'err');
+            }
+        }
+
+        // ── SERIALIZE & RENDER TREE ──
+        function serializeAll() {
+            function serializeGroup(groupEl) {
+                if (!groupEl) return null;
+                const nodeEl = groupEl.querySelector(':scope > .node');
+                if (!nodeEl) return null;
+                
+                const textEl = nodeEl.querySelector('.node-text');
+                const noteEl = nodeEl.querySelector('.node-note-data');
+                
+                const nodeData = {
+                    text: textEl.innerText,
+                    note: noteEl.innerHTML,
+                    collapsedUp: nodeEl.querySelector('.toggle-btn.up')?.classList.contains('collapsed') || false,
+                    collapsedDown: nodeEl.querySelector('.toggle-btn.down')?.classList.contains('collapsed') || false,
+                    collapsedLeft: nodeEl.querySelector('.toggle-btn.left')?.classList.contains('collapsed') || false,
+                    collapsedRight: nodeEl.querySelector('.toggle-btn.right')?.classList.contains('collapsed') || false,
+                    childrenUp: [], childrenDown: [], childrenLeft: [], childrenRight: []
+                };
+
+                const upC = groupEl.querySelector(':scope > .children.up');
+                if (upC) Array.from(upC.children).forEach(c => nodeData.childrenUp.push(serializeGroup(c)));
+                const downC = groupEl.querySelector(':scope > .children.down');
+                if (downC) Array.from(downC.children).forEach(c => nodeData.childrenDown.push(serializeGroup(c)));
+                const leftC = groupEl.querySelector(':scope > .children.left');
+                if (leftC) Array.from(leftC.children).forEach(c => nodeData.childrenLeft.push(serializeGroup(c)));
+                const rightC = groupEl.querySelector(':scope > .children.right');
+                if (rightC) Array.from(rightC.children).forEach(c => nodeData.childrenRight.push(serializeGroup(c)));
+
+                return nodeData;
+            }
+
+            const root = document.querySelector('#tree-container > .node-group');
+            const treeData = root ? serializeGroup(root) : null;
+            
+            const floatingData = [];
+            document.querySelectorAll('.floating-node').forEach(fn => {
+                floatingData.push({
+                    x: parseInt(fn.style.left) || 0,
+                    y: parseInt(fn.style.top) || 0,
+                    text: fn.querySelector('.node-text').innerText,
+                    note: fn.querySelector('.node-note-data').innerHTML
+                });
+            });
+
+            return { tree: treeData, floatingNodes: floatingData };
+        }
+
+        function renderFloating(nodes) {
+            const container = document.getElementById('floating-container');
+            container.innerHTML = '';
+            if(nodes) {
+                nodes.forEach(fn => addFloatingNode(fn.x, fn.y, fn.text, fn.note, false));
+            }
+        }
+
+        function renderTree(data) {
+            function buildGroup(nodeData, isRoot = false) {
+                if (!nodeData) return document.createElement('div');
+                const group = document.createElement('div');
+                group.className = 'node-group';
+                
+                const delBtnHTML = isRoot ? '' : `<button class="action-btn del-btn" onclick="confirmDelete(this, event)" title="Hapus">×</button>`;
+                
+                const noteStr = nodeData.note || '';
+                const hasNote = noteStr.trim() !== '' && noteStr !== '<br>';
+
+                const html = `
+                    <div class="children up" ${nodeData.collapsedUp ? 'style="display:none;"' : ''}></div>
+                    <div class="children left" ${nodeData.collapsedLeft ? 'style="display:none;"' : ''}></div>
+                    <div class="node ${isRoot ? 'root-node' : ''} ${hasNote ? 'has-note' : ''}">
+                        <button class="add-dir-btn up" onclick="addNodeDir(this, 'up')" title="Tambah ke atas">+</button>
+                        <button class="toggle-btn up ${nodeData.collapsedUp ? 'collapsed' : ''}" onclick="toggleBranch(this, 'up')" title="Buka/Tutup Cabang Atas">${nodeData.collapsedUp ? '▼' : '▲'}</button>
+                        
+                        <button class="add-dir-btn left" onclick="addNodeDir(this, 'left')" title="Tambah ke kiri">+</button>
+                        <button class="toggle-btn left ${nodeData.collapsedLeft ? 'collapsed' : ''}" onclick="toggleBranch(this, 'left')" title="Buka/Tutup Cabang Kiri">${nodeData.collapsedLeft ? '▶' : '◀'}</button>
+                        
+                        <div class="node-text" contenteditable="true" oninput="drawLines()" onblur="handleTextBlur()">${nodeData.text || ''}</div>
+                        <div class="node-note-data" style="display:none;">${noteStr}</div>
+                        <div class="action-btns">
+                            <button class="action-btn note-btn" onclick="openNote(this)" title="Catatan">✎</button>
+                            ${delBtnHTML}
+                        </div>
+                        
+                        <button class="add-dir-btn right" onclick="addNodeDir(this, 'right')" title="Tambah ke kanan">+</button>
+                        <button class="toggle-btn right ${nodeData.collapsedRight ? 'collapsed' : ''}" onclick="toggleBranch(this, 'right')" title="Buka/Tutup Cabang Kanan">${nodeData.collapsedRight ? '◀' : '▶'}</button>
+
+                        <button class="add-dir-btn down" onclick="addNodeDir(this, 'down')" title="Tambah ke bawah">+</button>
+                        <button class="toggle-btn down ${nodeData.collapsedDown ? 'collapsed' : ''}" onclick="toggleBranch(this, 'down')" title="Buka/Tutup Cabang Bawah">${nodeData.collapsedDown ? '▲' : '▼'}</button>
+                    </div>
+                    <div class="children right" ${nodeData.collapsedRight ? 'style="display:none;"' : ''}></div>
+                    <div class="children down" ${nodeData.collapsedDown ? 'style="display:none;"' : ''}></div>
+                `;
+                group.innerHTML = html;
+
+                try {
+                    const upContainer = group.querySelector(':scope > .children.up');
+                    (nodeData.childrenUp || []).forEach(c => { if(c) upContainer.appendChild(buildGroup(c, false)); });
+                    if ((nodeData.childrenUp || []).length > 0) group.querySelector('.toggle-btn.up').style.display = 'flex';
+
+                    const leftContainer = group.querySelector(':scope > .children.left');
+                    (nodeData.childrenLeft || []).forEach(c => { if(c) leftContainer.appendChild(buildGroup(c, false)); });
+                    if ((nodeData.childrenLeft || []).length > 0) group.querySelector('.toggle-btn.left').style.display = 'flex';
+
+                    const rightContainer = group.querySelector(':scope > .children.right');
+                    (nodeData.childrenRight || []).forEach(c => { if(c) rightContainer.appendChild(buildGroup(c, false)); });
+                    if ((nodeData.childrenRight || []).length > 0) group.querySelector('.toggle-btn.right').style.display = 'flex';
+
+                    // Fallback kompatibilitas data JSON layout sebelumnya
+                    const downData = nodeData.childrenDown || nodeData.children || [];
+                    const downContainer = group.querySelector(':scope > .children.down');
+                    downData.forEach(c => { if(c) downContainer.appendChild(buildGroup(c, false)); });
+                    if (downData.length > 0) group.querySelector('.toggle-btn.down').style.display = 'flex';
+                } catch(e) {
+                    console.error("Gagal menyusun cabang: ", e);
+                }
+
+                return group;
+            }
+
+            const container = document.getElementById('tree-container');
+            container.innerHTML = '';
+            
+            // Failsafe utama: Jika datanya rusak/null, paksa buat root node!
+            if (data && Object.keys(data).length > 0) {
+                container.appendChild(buildGroup(data, true));
+            } else {
+                container.appendChild(buildGroup({ text: "Root Idea", childrenUp: [], childrenDown: [], childrenLeft: [], childrenRight: [] }, true));
+            }
+            
+            setTimeout(drawLines, 50);
+        }
+
+        function drawLines() {
+            const svg = document.getElementById('lines-svg');
+            svg.innerHTML = '';
+            const wrapper = document.getElementById('canvas-wrapper');
+
+            // Pastikan SVG mencakup seluruh area scroll, bukan hanya viewport
+            svg.style.width  = wrapper.scrollWidth  + 'px';
+            svg.style.height = wrapper.scrollHeight + 'px';
+
+            const wrapperRect = wrapper.getBoundingClientRect();
+            const scrollTop = wrapper.scrollTop;
+            const scrollLeft = wrapper.scrollLeft;
+            const strokeColor = getComputedStyle(document.body).getPropertyValue('--border').trim();
+
+            // ── DEDUPLICATION: Lacak endpoint garis yang sudah digambar.
+            // Kalau ada dua garis ke titik yang sama, yang pertama (duluan) yang dipakai.
+            const drawnEndpoints = new Set();
+            function isEndpointDuplicate(endX, endY) {
+                // Bulatkan ke 2px biar ga kena float precision issue
+                const key = `${Math.round(endX / 2) * 2},${Math.round(endY / 2) * 2}`;
+                if (drawnEndpoints.has(key)) return true;
+                drawnEndpoints.add(key);
+                return false;
+            }
+
+            document.querySelectorAll('.node-group').forEach(group => {
+                const parentNode = group.querySelector(':scope > .node');
+                if (!parentNode) return;
+                const pRect = parentNode.getBoundingClientRect();
+
+                // Down
+                const downContainer = group.querySelector(':scope > .children.down');
+                if (downContainer && downContainer.children.length > 0 && downContainer.style.display !== 'none') {
+                    const startX = (pRect.left + pRect.width / 2 - wrapperRect.left) + scrollLeft;
+                    const startY = (pRect.bottom - wrapperRect.top) + scrollTop;
+                    
+                    Array.from(downContainer.children).forEach(childGroup => {
+                        const childNode = childGroup.querySelector(':scope > .node');
+                        if (childNode) {
+                            const cRect = childNode.getBoundingClientRect();
+                            const endX = (cRect.left + cRect.width / 2 - wrapperRect.left) + scrollLeft;
+                            const endY = (cRect.top - wrapperRect.top) + scrollTop;
+                            if (isEndpointDuplicate(endX, endY)) return; // skip garis duplikat
+                            const midY = startY + (endY - startY) / 2;
+                            
+                            const pathD = `M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`;
+                            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                            path.setAttribute('d', pathD); path.setAttribute('fill', 'none'); path.setAttribute('stroke', strokeColor); path.setAttribute('stroke-width', '2');
+                            svg.appendChild(path);
+                        }
+                    });
+                }
+                
+                // Up
+                const upContainer = group.querySelector(':scope > .children.up');
+                if (upContainer && upContainer.children.length > 0 && upContainer.style.display !== 'none') {
+                    const startX = (pRect.left + pRect.width / 2 - wrapperRect.left) + scrollLeft;
+                    const startY = (pRect.top - wrapperRect.top) + scrollTop;
+                    
+                    Array.from(upContainer.children).forEach(childGroup => {
+                        const childNode = childGroup.querySelector(':scope > .node');
+                        if (childNode) {
+                            const cRect = childNode.getBoundingClientRect();
+                            const endX = (cRect.left + cRect.width / 2 - wrapperRect.left) + scrollLeft;
+                            const endY = (cRect.bottom - wrapperRect.top) + scrollTop;
+                            if (isEndpointDuplicate(endX, endY)) return; // skip garis duplikat
+                            const midY = startY + (endY - startY) / 2;
+                            
+                            const pathD = `M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`;
+                            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                            path.setAttribute('d', pathD); path.setAttribute('fill', 'none'); path.setAttribute('stroke', strokeColor); path.setAttribute('stroke-width', '2');
+                            svg.appendChild(path);
+                        }
+                    });
+                }
+
+                // Left
+                const leftContainer = group.querySelector(':scope > .children.left');
+                if (leftContainer && leftContainer.children.length > 0 && leftContainer.style.display !== 'none') {
+                    const startX = (pRect.left - wrapperRect.left) + scrollLeft;
+                    const startY = (pRect.top + pRect.height / 2 - wrapperRect.top) + scrollTop;
+                    
+                    Array.from(leftContainer.children).forEach(childGroup => {
+                        const childNode = childGroup.querySelector(':scope > .node');
+                        if (childNode) {
+                            const cRect = childNode.getBoundingClientRect();
+                            const endX = (cRect.right - wrapperRect.left) + scrollLeft;
+                            const endY = (cRect.top + cRect.height / 2 - wrapperRect.top) + scrollTop;
+                            if (isEndpointDuplicate(endX, endY)) return; // skip garis duplikat
+                            const midX = startX + (endX - startX) / 2;
+                            
+                            const pathD = `M ${startX} ${startY} L ${midX} ${startY} L ${midX} ${endY} L ${endX} ${endY}`;
+                            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                            path.setAttribute('d', pathD); path.setAttribute('fill', 'none'); path.setAttribute('stroke', strokeColor); path.setAttribute('stroke-width', '2');
+                            svg.appendChild(path);
+                        }
+                    });
+                }
+
+                // Right
+                const rightContainer = group.querySelector(':scope > .children.right');
+                if (rightContainer && rightContainer.children.length > 0 && rightContainer.style.display !== 'none') {
+                    const startX = (pRect.right - wrapperRect.left) + scrollLeft;
+                    const startY = (pRect.top + pRect.height / 2 - wrapperRect.top) + scrollTop;
+                    
+                    Array.from(rightContainer.children).forEach(childGroup => {
+                        const childNode = childGroup.querySelector(':scope > .node');
+                        if (childNode) {
+                            const cRect = childNode.getBoundingClientRect();
+                            const endX = (cRect.left - wrapperRect.left) + scrollLeft;
+                            const endY = (cRect.top + cRect.height / 2 - wrapperRect.top) + scrollTop;
+                            if (isEndpointDuplicate(endX, endY)) return; // skip garis duplikat
+                            const midX = startX + (endX - startX) / 2;
+                            
+                            const pathD = `M ${startX} ${startY} L ${midX} ${startY} L ${midX} ${endY} L ${endX} ${endY}`;
+                            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                            path.setAttribute('d', pathD); path.setAttribute('fill', 'none'); path.setAttribute('stroke', strokeColor); path.setAttribute('stroke-width', '2');
+                            svg.appendChild(path);
+                        }
+                    });
+                }
+            });
+            if (document.body.classList.contains('focus-mode')) checkScrollNeeded();
+        }
+
+        function toggleMobileView() {
+            isMobileView = !isMobileView;
+            const wrapper = document.getElementById('canvas-wrapper');
+            const workspace = document.getElementById('workspace');
+            const btn = document.getElementById('btn-mobile');
+            if (isMobileView) {
+                wrapper.classList.add('mobile-device'); workspace.classList.add('mobile-active'); btn.innerHTML = '💻 Mode: Mobile';
+            } else {
+                wrapper.classList.remove('mobile-device'); workspace.classList.remove('mobile-active'); btn.innerHTML = '📱 Mode: Desktop';
+            }
+            setTimeout(drawLines, 400); 
+            centerScroll();
+        }
+
+        function centerScroll() {
+            const wrapper = document.getElementById('canvas-wrapper');
+            if(wrapper) {
+                wrapper.scrollTop = (wrapper.scrollHeight - wrapper.clientHeight) / 2;
+                wrapper.scrollLeft = (wrapper.scrollWidth - wrapper.clientWidth) / 2;
+            }
+        }
+
+        function init() {
+            const savedTheme = localStorage.getItem('mind_ryg_theme') || 'dark';
+            setTheme(savedTheme);
+            
+            const localData = localStorage.getItem('mind_ryg_local');
+            if (localData) {
+                restoreState(localData);
+                history = [localData]; historyIndex = 0; updateHistoryButtons();
+            } else {
+                const tree = document.getElementById('tree-container');
+                tree.innerHTML = `
+                    <div class="node-group">
+                        <div class="children up"></div>
+                        <div class="children left"></div>
+                        <div class="node root-node">
+                            <button class="add-dir-btn up" onclick="addNodeDir(this, 'up')" title="Tambah ke atas">+</button>
+                            <button class="toggle-btn up" onclick="toggleBranch(this, 'up')" title="Buka/Tutup Cabang Atas">▲</button>
+                            
+                            <button class="add-dir-btn left" onclick="addNodeDir(this, 'left')" title="Tambah ke kiri">+</button>
+                            <button class="toggle-btn left" onclick="toggleBranch(this, 'left')" title="Buka/Tutup Cabang Kiri">◀</button>
+                            
+                            <div class="node-text" contenteditable="true" oninput="drawLines()" onblur="handleTextBlur()">Root Idea</div>
+                            <div class="node-note-data" style="display:none;"></div>
+                            <div class="action-btns">
+                                <button class="action-btn note-btn" onclick="openNote(this)" title="Catatan">✎</button>
+                            </div>
+                            
+                            <button class="add-dir-btn right" onclick="addNodeDir(this, 'right')" title="Tambah ke kanan">+</button>
+                            <button class="toggle-btn right" onclick="toggleBranch(this, 'right')" title="Buka/Tutup Cabang Kanan">▶</button>
+
+                            <button class="add-dir-btn down" onclick="addNodeDir(this, 'down')" title="Tambah ke bawah">+</button>
+                            <button class="toggle-btn down" onclick="toggleBranch(this, 'down')" title="Buka/Tutup Cabang Bawah">▼</button>
+                        </div>
+                        <div class="children right"></div>
+                        <div class="children down"></div>
+                    </div>
+                `;
+                document.getElementById('floating-container').innerHTML = '';
+                saveState();
+            }
+            setTimeout(centerScroll, 100);
+        }
+
+        async function exportToPNG(orientation) {
+            closeDeletePopover();
+            const wrapper = document.getElementById('canvas-wrapper');
+            const tree = document.getElementById('tree-container');
+            const originalStyle = wrapper.getAttribute('style') || '';
+            
+            let maxX = 0; let maxY = 0; let minX = Infinity; let minY = Infinity;
+            
+            const tRect = tree.getBoundingClientRect();
+            if(tRect.width > 0 && tRect.height > 0) {
+                minX = Math.min(minX, tRect.left + wrapper.scrollLeft);
+                minY = Math.min(minY, tRect.top + wrapper.scrollTop);
+                maxX = Math.max(maxX, tRect.right + wrapper.scrollLeft);
+                maxY = Math.max(maxY, tRect.bottom + wrapper.scrollTop);
+            }
+
+            document.querySelectorAll('.floating-node').forEach(fn => {
+                const rect = fn.getBoundingClientRect();
+                minX = Math.min(minX, rect.left + wrapper.scrollLeft);
+                minY = Math.min(minY, rect.top + wrapper.scrollTop);
+                maxX = Math.max(maxX, rect.right + wrapper.scrollLeft);
+                maxY = Math.max(maxY, rect.bottom + wrapper.scrollTop);
+            });
+
+            if(minX === Infinity) { minX = 0; minY = 0; maxX = wrapper.clientWidth; maxY = wrapper.clientHeight; }
+
+            const exportW = Math.max(wrapper.clientWidth, maxX - minX + 200);
+            const exportH = Math.max(wrapper.clientHeight, maxY - minY + 200);
+
+            wrapper.style.width = exportW + 'px';
+            wrapper.style.height = exportH + 'px';
+            wrapper.style.overflow = 'visible';
+            wrapper.style.flexGrow = '0';
+            
+            drawLines();
+            
+            try {
+                const canvas = await html2canvas(wrapper, {
+                    width: exportW, height: exportH, backgroundColor: getComputedStyle(document.body).getPropertyValue('--bg'), scale: 1.5
+                });
+                
+                wrapper.setAttribute('style', originalStyle); drawLines();
+                
+                const link = document.createElement('a');
+                link.download = `mind_ryg_${Date.now()}.png`;
+                link.href = canvas.toDataURL('image/png'); link.click();
+            } catch (err) {
+                console.error("Export failed:", err); wrapper.setAttribute('style', originalStyle); drawLines();
+            }
+        }
+
+        const exitZone = document.getElementById('focus-exit-zone');
+        const exitBtn  = document.getElementById('focus-exit-btn');
+        exitZone.addEventListener('mouseenter', () => exitBtn.classList.add('peek'));
+        exitZone.addEventListener('mouseleave', () => exitBtn.classList.remove('peek'));
+        exitBtn.addEventListener('mouseenter', () => exitBtn.classList.add('peek'));
+        exitBtn.addEventListener('mouseleave', () => exitBtn.classList.remove('peek'));
+        
+        document.getElementById('canvas-wrapper').addEventListener('scroll', drawLines);
+        window.onload = init;
+    </script>
+</body>
+</html>
