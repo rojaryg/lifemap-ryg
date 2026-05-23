@@ -1,0 +1,179 @@
+{
+  "title": "lifemap-ryg",
+  "all": {
+    "tree": {
+      "text": "rojaryg",
+      "note": "",
+      "collapsedUp": false,
+      "collapsedDown": false,
+      "collapsedLeft": false,
+      "collapsedRight": false,
+      "childrenUp": [
+        {
+          "text": "Data Analyst",
+          "note": "",
+          "collapsedUp": false,
+          "collapsedDown": false,
+          "collapsedLeft": false,
+          "collapsedRight": false,
+          "childrenUp": [
+            {
+              "text": "Excel",
+              "note": "",
+              "collapsedUp": false,
+              "collapsedDown": false,
+              "collapsedLeft": false,
+              "collapsedRight": false,
+              "childrenUp": [],
+              "childrenDown": [],
+              "childrenLeft": [],
+              "childrenRight": []
+            },
+            {
+              "text": "Spreadsheet",
+              "note": "",
+              "collapsedUp": false,
+              "collapsedDown": false,
+              "collapsedLeft": false,
+              "collapsedRight": false,
+              "childrenUp": [],
+              "childrenDown": [],
+              "childrenLeft": [],
+              "childrenRight": []
+            },
+            {
+              "text": "SQL",
+              "note": "",
+              "collapsedUp": false,
+              "collapsedDown": false,
+              "collapsedLeft": false,
+              "collapsedRight": false,
+              "childrenUp": [],
+              "childrenDown": [],
+              "childrenLeft": [],
+              "childrenRight": []
+            },
+            {
+              "text": "Data Viz",
+              "note": "",
+              "collapsedUp": false,
+              "collapsedDown": false,
+              "collapsedLeft": false,
+              "collapsedRight": false,
+              "childrenUp": [
+                {
+                  "text": "Power BI",
+                  "note": "",
+                  "collapsedUp": false,
+                  "collapsedDown": false,
+                  "collapsedLeft": false,
+                  "collapsedRight": false,
+                  "childrenUp": [],
+                  "childrenDown": [],
+                  "childrenLeft": [],
+                  "childrenRight": []
+                },
+                {
+                  "text": "Tableau",
+                  "note": "",
+                  "collapsedUp": false,
+                  "collapsedDown": false,
+                  "collapsedLeft": false,
+                  "collapsedRight": false,
+                  "childrenUp": [],
+                  "childrenDown": [],
+                  "childrenLeft": [],
+                  "childrenRight": []
+                },
+                {
+                  "text": "Looker Studio",
+                  "note": "",
+                  "collapsedUp": false,
+                  "collapsedDown": false,
+                  "collapsedLeft": false,
+                  "collapsedRight": false,
+                  "childrenUp": [],
+                  "childrenDown": [],
+                  "childrenLeft": [],
+                  "childrenRight": []
+                }
+              ],
+              "childrenDown": [],
+              "childrenLeft": [],
+              "childrenRight": []
+            },
+            {
+              "text": "Python",
+              "note": "",
+              "collapsedUp": false,
+              "collapsedDown": false,
+              "collapsedLeft": false,
+              "collapsedRight": false,
+              "childrenUp": [],
+              "childrenDown": [],
+              "childrenLeft": [],
+              "childrenRight": []
+            }
+          ],
+          "childrenDown": [],
+          "childrenLeft": [],
+          "childrenRight": []
+        }
+      ],
+      "childrenDown": [
+        {
+          "text": "Agama",
+          "note": "",
+          "collapsedUp": false,
+          "collapsedDown": false,
+          "collapsedLeft": false,
+          "collapsedRight": false,
+          "childrenUp": [],
+          "childrenDown": [],
+          "childrenLeft": [],
+          "childrenRight": []
+        },
+        {
+          "text": "Kuliah",
+          "note": "",
+          "collapsedUp": false,
+          "collapsedDown": false,
+          "collapsedLeft": false,
+          "collapsedRight": false,
+          "childrenUp": [],
+          "childrenDown": [],
+          "childrenLeft": [],
+          "childrenRight": []
+        },
+        {
+          "text": "Kesehatan",
+          "note": "",
+          "collapsedUp": false,
+          "collapsedDown": false,
+          "collapsedLeft": false,
+          "collapsedRight": false,
+          "childrenUp": [],
+          "childrenDown": [],
+          "childrenLeft": [],
+          "childrenRight": []
+        },
+        {
+          "text": "Keuangan",
+          "note": "",
+          "collapsedUp": false,
+          "collapsedDown": false,
+          "collapsedLeft": false,
+          "collapsedRight": false,
+          "childrenUp": [],
+          "childrenDown": [],
+          "childrenLeft": [],
+          "childrenRight": []
+        }
+      ],
+      "childrenLeft": [],
+      "childrenRight": []
+    },
+    "floatingNodes": []
+  },
+  "savedAt": "2026-05-23T01:30:01.407Z"
+}
