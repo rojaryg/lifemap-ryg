@@ -217,6 +217,7 @@
         .sync-alt-input:focus { border-color: var(--flow); }
         .sync-alt-btn { padding: 8px 12px; border-radius: var(--radius-sm); background: var(--card); border: 1px solid var(--border-light); color: var(--text-mid); font-size: 0.78rem; cursor: pointer; white-space: nowrap; }
         .sync-alt-btn:hover { color: var(--text); border-color: var(--flow); background: var(--flow-dim); }
+        .sync-hint { font-size: 0.68rem; color: var(--text-muted); margin-top: 4px; line-height: 1.4; }
 
         /* ── WORKSPACE & CANVAS ── */
         .workspace { flex-grow: 1; display: flex; justify-content: center; align-items: center; overflow: hidden; transition: background-color 0.4s; min-height: 0; position: relative; }
@@ -448,17 +449,19 @@
 
     <div class="sync-panel" id="sync-panel">
         <div class="sync-panel-title">
-            ☁ GitHub Gist Sync
+            ☁ GitHub Repo Sync
             <button class="sync-close" onclick="closeSyncPanel()">×</button>
         </div>
 
         <div class="sync-field">
             <label class="sync-label">Username GitHub</label>
-            <div class="sync-input-wrap" style="gap: 6px;">
-                <input type="text" id="sync-username" class="sync-input" placeholder="contoh: ryg-dev" style="flex:1;">
-                <button class="sync-alt-btn" onclick="verifyUsername()" id="btn-verify" style="flex-shrink:0; padding: 0 12px; height: 36px;">Verifikasi</button>
-            </div>
-            <div id="verify-status" style="font-size:0.72rem; margin-top:5px; min-height:16px;"></div>
+            <input type="text" id="sync-username" class="sync-input" placeholder="contoh: ryg-dev">
+        </div>
+
+        <div class="sync-field">
+            <label class="sync-label">Nama Repo</label>
+            <input type="text" id="sync-repo" class="sync-input" placeholder="contoh: lifemap-data">
+            <div class="sync-hint">Data akan disimpan sebagai <code style="font-size:0.68rem;color:var(--text-mid)">lifemap-data.json</code> di root repo tersebut.</div>
         </div>
 
         <div class="sync-field">
@@ -467,31 +470,24 @@
                 <input type="password" id="sync-token" class="sync-input" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" style="padding-right: 34px;">
                 <button class="sync-eye" id="sync-eye-btn" onclick="toggleTokenVisibility()" title="Tampilkan/Sembunyikan token">👁</button>
             </div>
+            <div class="sync-hint">Token butuh scope <code style="font-size:0.68rem;color:var(--text-mid)">repo</code> atau <code style="font-size:0.68rem;color:var(--text-mid)">public_repo</code>.</div>
         </div>
 
         <div class="sync-row">
             <button class="sync-btn sync-btn-load" onclick="loadFromGithub()">⬇ Load</button>
-            <button class="sync-btn sync-btn-save" onclick="saveToGithub()">⬆ Save ke Gist</button>
+            <button class="sync-btn sync-btn-save" onclick="saveToGithub()">⬆ Save ke Repo</button>
         </div>
 
         <div class="sync-status" id="sync-status"></div>
 
-        <!-- Info gist yang tersimpan -->
+        <!-- Info repo yang tersambung -->
         <div class="sync-gist-card" id="sync-gist-card">
             <div class="sync-gist-dot"></div>
             <div class="sync-gist-info">
-                <div class="sync-gist-label">Gist Tersambung</div>
+                <div class="sync-gist-label">Repo Tersambung</div>
                 <div class="sync-gist-id-text" id="sync-gist-id-text">—</div>
             </div>
             <a href="#" id="sync-gist-link" target="_blank" class="sync-gist-link">Buka ↗</a>
-        </div>
-
-        <!-- Load dari Gist orang lain -->
-        <hr class="sync-divider">
-        <span class="sync-alt-label">Load dari Gist ID lain (misal: berbagi dengan teman)</span>
-        <div class="sync-alt-row">
-            <input type="text" id="sync-alt-gist-id" class="sync-alt-input" placeholder="Masukkan Gist ID...">
-            <button class="sync-alt-btn" onclick="loadFromAltGist()">Load</button>
         </div>
     </div>
 
@@ -1014,17 +1010,17 @@
             saveState(); 
         }
 
-        // ── SYNC PANEL & GIST LOGIC ──
+        // ── SYNC PANEL & REPO LOGIC ──
         function toggleSyncPanel() {
             const panel = document.getElementById('sync-panel');
             if (panel.classList.contains('open')) { closeSyncPanel(); return; }
 
             // Isi field dari localStorage kalau ada
             document.getElementById('sync-username').value = localStorage.getItem('gh_username') || '';
+            document.getElementById('sync-repo').value = localStorage.getItem('gh_repo') || '';
             document.getElementById('sync-token').value = localStorage.getItem('gh_token') || '';
-            document.getElementById('verify-status').textContent = '';
 
-            // Tampilkan gist card kalau ada gist tersimpan
+            // Tampilkan repo card kalau ada tersimpan
             updateGistCard();
 
             panel.classList.add('open');
@@ -1053,47 +1049,13 @@
             }
         }
 
-        async function verifyUsername() {
-            const username = document.getElementById('sync-username').value.trim();
-            const token    = document.getElementById('sync-token').value.trim();
-            const statusEl = document.getElementById('verify-status');
-            const btn      = document.getElementById('btn-verify');
-
-            if (!username) { statusEl.style.color = 'var(--danger)'; statusEl.textContent = '❌ Username tidak boleh kosong.'; return; }
-
-            btn.textContent = '...'; btn.disabled = true;
-            statusEl.style.color = 'var(--text-muted)'; statusEl.textContent = 'Memeriksa...';
-
-            try {
-                const headers = { 'Accept': 'application/vnd.github.v3+json', ...(token ? { 'Authorization': `token ${token}` } : {}) };
-                const res  = await fetch(`https://api.github.com/users/${encodeURIComponent(username)}`, { headers });
-                const data = await res.json();
-
-                if (res.ok) {
-                    localStorage.setItem('gh_username', username);
-                    if (token) localStorage.setItem('gh_token', token);
-                    statusEl.style.color = '#4caf7d';
-                    statusEl.textContent = `✓ Terverifikasi — ${data.name || username} (@${data.login})`;
-                } else if (res.status === 401) {
-                    statusEl.style.color = 'var(--danger)'; statusEl.textContent = '❌ Token tidak valid atau tidak punya akses.';
-                } else if (res.status === 404) {
-                    statusEl.style.color = 'var(--danger)'; statusEl.textContent = '❌ Username tidak ditemukan di GitHub.';
-                } else {
-                    statusEl.style.color = 'var(--danger)'; statusEl.textContent = '❌ ' + (data.message || 'Gagal verifikasi.');
-                }
-            } catch (err) {
-                statusEl.style.color = 'var(--danger)'; statusEl.textContent = '❌ Error jaringan: ' + err.message;
-            }
-
-            btn.textContent = 'Verifikasi'; btn.disabled = false;
-        }
-
         function updateGistCard() {
-            const gistId = localStorage.getItem('gh_gist_id');
+            const username = localStorage.getItem('gh_username');
+            const repo = localStorage.getItem('gh_repo');
             const card = document.getElementById('sync-gist-card');
-            if (gistId) {
-                document.getElementById('sync-gist-id-text').textContent = gistId;
-                document.getElementById('sync-gist-link').href = `https://gist.github.com/${gistId}`;
+            if (username && repo) {
+                document.getElementById('sync-gist-id-text').textContent = `${username}/${repo}/lifemap-data.json`;
+                document.getElementById('sync-gist-link').href = `https://github.com/${username}/${repo}/blob/main/lifemap-data.json`;
                 card.classList.add('visible');
             } else {
                 card.classList.remove('visible');
@@ -1101,15 +1063,23 @@
         }
 
         async function saveToGithub() {
-            const token = document.getElementById('sync-token').value.trim();
-            if (!token) { setStatus('❌ Token tidak boleh kosong.', 'err'); return; }
+            const username = document.getElementById('sync-username').value.trim();
+            const repo     = document.getElementById('sync-repo').value.trim();
+            const token    = document.getElementById('sync-token').value.trim();
 
+            if (!username) { setStatus('❌ Username tidak boleh kosong.', 'err'); return; }
+            if (!repo)     { setStatus('❌ Nama repo tidak boleh kosong.', 'err'); return; }
+            if (!token)    { setStatus('❌ Token tidak boleh kosong.', 'err'); return; }
+
+            localStorage.setItem('gh_username', username);
+            localStorage.setItem('gh_repo', repo);
             localStorage.setItem('gh_token', token);
             setStatus('Menyimpan...', 'loading');
 
-            const allData  = serializeAll();
-            const title    = document.getElementById('doc-title').innerText;
-            const jsonStr  = JSON.stringify({ title, all: allData, savedAt: new Date().toISOString() }, null, 2);
+            const allData = serializeAll();
+            const title   = document.getElementById('doc-title').innerText;
+            const jsonStr = JSON.stringify({ title, all: allData, savedAt: new Date().toISOString() }, null, 2);
+            const encoded = btoa(unescape(encodeURIComponent(jsonStr)));
 
             const headers = {
                 'Authorization': `token ${token}`,
@@ -1117,46 +1087,36 @@
                 'Content-Type': 'application/json'
             };
 
-            const gistPayload = {
-                description: `lifemap✦ryg — ${title}`,
-                public: false,
-                files: { 'mind_ryg_data.json': { content: jsonStr } }
-            };
+            const filePath = `lifemap-data.json`;
+            const apiUrl   = `https://api.github.com/repos/${username}/${repo}/contents/${filePath}`;
 
             try {
-                const existingGistId = localStorage.getItem('gh_gist_id');
-                let res, data;
-
-                if (existingGistId) {
-                    // Update gist yang sudah ada (PATCH)
-                    res  = await fetch(`https://api.github.com/gists/${existingGistId}`, {
-                        method: 'PATCH', headers, body: JSON.stringify(gistPayload)
-                    });
-                    data = await res.json();
-
-                    if (!res.ok) {
-                        // Kalau gist lama ga ketemu (misal dihapus), buat baru
-                        if (res.status === 404) {
-                            localStorage.removeItem('gh_gist_id');
-                            return saveToGithub(); // rekursi sekali untuk buat baru
-                        }
-                        setStatus('❌ ' + (data.message || 'Gagal update gist'), 'err'); return;
-                    }
-                } else {
-                    // Buat gist baru (POST)
-                    res  = await fetch('https://api.github.com/gists', {
-                        method: 'POST', headers, body: JSON.stringify(gistPayload)
-                    });
-                    data = await res.json();
-
-                    if (!res.ok) {
-                        setStatus('❌ ' + (data.message || 'Gagal membuat gist'), 'err'); return;
-                    }
+                // Cek apakah file sudah ada (untuk dapat SHA-nya)
+                let sha = null;
+                const checkRes = await fetch(apiUrl, { headers });
+                if (checkRes.ok) {
+                    const checkData = await checkRes.json();
+                    sha = checkData.sha;
+                } else if (checkRes.status !== 404) {
+                    const errData = await checkRes.json();
+                    setStatus('❌ ' + (errData.message || 'Gagal cek file'), 'err'); return;
                 }
 
-                localStorage.setItem('gh_gist_id', data.id);
+                const body = {
+                    message: `lifemap update: ${title} — ${new Date().toLocaleString('id-ID')}`,
+                    content: encoded,
+                    ...(sha ? { sha } : {})
+                };
+
+                const saveRes  = await fetch(apiUrl, { method: 'PUT', headers, body: JSON.stringify(body) });
+                const saveData = await saveRes.json();
+
+                if (!saveRes.ok) {
+                    setStatus('❌ ' + (saveData.message || 'Gagal menyimpan ke repo'), 'err'); return;
+                }
+
                 updateGistCard();
-                setStatus('✓ Tersimpan ke Gist!', 'ok');
+                setStatus('✓ Tersimpan ke repo!', 'ok');
 
             } catch (err) {
                 setStatus('❌ Error jaringan: ' + err.message, 'err');
@@ -1164,45 +1124,37 @@
         }
 
         async function loadFromGithub() {
-            const token = document.getElementById('sync-token').value.trim();
-            const gistId = localStorage.getItem('gh_gist_id');
+            const username = document.getElementById('sync-username').value.trim();
+            const repo     = document.getElementById('sync-repo').value.trim();
+            const token    = document.getElementById('sync-token').value.trim();
 
-            if (!gistId) {
-                setStatus('❌ Belum ada Gist tersimpan. Save dulu, atau pakai "Load dari Gist ID lain".', 'err'); return;
-            }
+            if (!username) { setStatus('❌ Username tidak boleh kosong.', 'err'); return; }
+            if (!repo)     { setStatus('❌ Nama repo tidak boleh kosong.', 'err'); return; }
+            if (!token)    { setStatus('❌ Token tidak boleh kosong.', 'err'); return; }
 
-            await _doLoadGist(gistId, token);
-        }
-
-        async function loadFromAltGist() {
-            const token = document.getElementById('sync-token').value.trim();
-            const altId = document.getElementById('sync-alt-gist-id').value.trim();
-            if (!altId) { setStatus('❌ Masukkan Gist ID dulu.', 'err'); return; }
-            await _doLoadGist(altId, token);
-        }
-
-        async function _doLoadGist(gistId, token) {
+            localStorage.setItem('gh_username', username);
+            localStorage.setItem('gh_repo', repo);
+            localStorage.setItem('gh_token', token);
             setStatus('Memuat data...', 'loading');
 
+            const apiUrl = `https://api.github.com/repos/${username}/${repo}/contents/lifemap-data.json`;
             const headers = {
-                'Accept': 'application/vnd.github.v3+json',
-                ...(token ? { 'Authorization': `token ${token}` } : {})
+                'Authorization': `token ${token}`,
+                'Accept': 'application/vnd.github.v3+json'
             };
 
             try {
-                const res  = await fetch(`https://api.github.com/gists/${gistId}`, { headers });
+                const res  = await fetch(apiUrl, { headers });
                 const data = await res.json();
 
                 if (!res.ok) {
-                    setStatus('❌ ' + (data.message || 'Gist tidak ditemukan'), 'err'); return;
+                    setStatus('❌ ' + (data.message || 'File tidak ditemukan di repo'), 'err'); return;
                 }
 
-                const fileContent = data.files?.['mind_ryg_data.json']?.content;
-                if (!fileContent) {
-                    setStatus('❌ File mind_ryg_data.json tidak ada di Gist ini.', 'err'); return;
-                }
+                // GitHub API mengembalikan content dalam base64
+                const decoded  = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))));
+                const parsed   = JSON.parse(decoded);
 
-                const parsed = JSON.parse(fileContent);
                 document.getElementById('doc-title').innerText = parsed.title || 'lifemap✦ryg';
 
                 if (parsed.all) {
@@ -1213,11 +1165,7 @@
                     renderFloating([]);
                 }
 
-                // Simpan gist ID yang berhasil di-load ke localStorage
-                localStorage.setItem('gh_gist_id', gistId);
-                if (token) localStorage.setItem('gh_token', token);
                 updateGistCard();
-
                 const savedAt = parsed.savedAt ? ` (${new Date(parsed.savedAt).toLocaleString('id-ID')})` : '';
                 setStatus(`✓ Berhasil dimuat!${savedAt}`, 'ok');
 
